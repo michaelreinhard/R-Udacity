@@ -14,16 +14,81 @@ library(ggplot2)
 
 ```{r echo=FALSE, Load_the_Data}
 # Load the Data
-
-ill <- read.csv("/Users/michaelreinhard/nano/R/P00000001-IL.csv", header=TRUE)
+ill <- read.csv("/Users/michaelreinhard/nano/R/P00000001-IL.csv", header=TRUE, row.names=NULL)
+colnames(ill) <- c(colnames(ill)[-1],"x")
+ill$x <- NULL
 names(ill)
+
 ```
-So now I have duplicate row names and R Studio won't stand for it. That is kind of strange in that it worked the first time when I had no header on there. The solution would seem to be having a new index added, no? Then you could have the contributor's name duplicated all you wanted because it is just a variable. 
+So, there was a big problem because the first column had repeated numbers in it. And R wants to use the first column as a unique identifier and won't stand for that. It gave an error "duplicate row names not allowed." 
+
+The solution was a little convoluted. We set row.names="NULL" and this inserted (strange) a new name for the first column of "row.names". Then the original row names were all moved to the left one cell with the last column name getting pushed out over an empty column. 
+
+Then we use colnames(ill)[-1] to get the names of the columns minus the first one, "row.names", and add in "x" as a placeholder of the column of empty cells. Finally we just use the standard 'ill$x <- NULL' to get rid of the x column and the empty cells beneath it. 
+
+This is an important point to remember: the indexing system in R is totally different from the indexing system in Python. 
 # Univariate Plots Section
+So the first thing we see is that the cmte_id is treated as a character instead of a number. That is good for our purposes since we just want to treat it as a categorical variable anyway, but it is odd that there is no count of the various committee ids. We would expect to see some counts of which committee ids are most frequent, no? 
+
+So I used factor() on the cmte_id variable and found out that there are too many committees for R to report the levels. This means it will probably not be much good for analysis unless they committees can be grouped into a smaller number of groups. 
 ```{r echo=FALSE, Univariate_Plots}
 summary(ill)
-
+summary(ill$cmte_id)
+frequency(ill$cmte_id)
+factor(ill$cmte_id)
 ```
+So now we have to make some plots. Here are some univariate plots to figure out what is going on. I will make some plots of the individual variables and experiment with histograms, bar and line charts as appropriate. 
+```{r echo=FALSE}
+hist(ill$contb_receipt_amt)
+qplot(contb_receipt_amt,data=ill,geom="histogram",binwidth=1000)  # saw nothing
+qplot(contb_receipt_amt,data=ill,geom="histogram",binwidth=100) # didn't even make a plot  
+summary(ill$contb_receipt_amt)
+qplot(contb_receipt_amt,data=ill,geom="histogram",binwidth=200, xlim=0,ylim=1000)
+# take a smaller subset of the data
+ill_s = subset(ill, contb_receipt_amt > 0 & contb_receipt_amt < 5000)
+summary(ill_s$contb_receipt_amt)
+qplot(contb_receipt_amt, data=ill_s, geom="histogram")
+qplot(contb_receipt_amt, data=ill_s, geom="histogram", bins=70)
+qplot(log(contb_receipt_amt), data=ill_s, geom="histogram", bins=50)
+```
+So I have one decent histogram of the dependent variable. It is hard to interpret because of the logarithmic value but at least the log values are more or less normally distributed.
+
+```{r}
+names(ill)
+levels(ill$contbr_occupation)
+```
+The variable I am interested in--occupation--is hopelessly 'dispersed' shall we say? I want to combine it into a meaningful number of categories. I would like to see which occupations favor Republicans vs Democrats. Then I would like to maybe tie the data up with the labor department classifications that would allow me to make some inferences about the relationship between party affiliation and education, private sector vs public sector, professions vs (whatever is the opposite of professions), lines of work that require occupational certifications vs those that don't. But it looks like a really big job. 
+```{r}
+names(ill)
+summary(ill$contbr_city)
+qplot(contbr_city, data=ill, geom="bar")
+```
+For cities I would have to get the data set married to something else again. Maybe I could get the lat and lon for the cities and put them into a map? Or cluster them somehow? Or get the population of the cites and use that as an independent variable? Maybe the Republicans and Democrats are split by urban and rural? 
+
+Or I could use contbr_zip? 
+```{r}
+summary(ill$contbr_zip)
+levels(ill$contbr_zip)
+qplot(contbr_zip, data=ill, geom="bar")
+```
+First of all there are way too many zips to deal with? I can't summarize them very well. 
+
+So one thing I can see is if I want to use the contributor zip codes I should use the primary zip code and not the 9 digit. How do I shorten the 9 digit zip code in R? I guess I could do it in Python and then bring it into R? Or I could turn it into a numeric variable and use ranges to bin them? But that would reduce the number but also destroy any meaning they might have, or at least make it appear that there is meaning where there is none. 
+
+Now we should look at the party id of the contributors or at least of the entities they are giving money to. 
+```{r}
+names(ill)
+summary(ill$cand_nm)
+qplot(cand_nm, data=ill, geom="bar")
+levels(ill$cand_nm)
+qplot(contb_receipt_dt, data=ill, geom = "bar")
+qplot(contb_receipt_dt, data=ill, geom = "histogram")
+```
+Should be able to make the date the contribution was received into a numeric variable and use it in a histogram to get a more general idea of when contributions are made. 
+
+1. get rid of the last four digits (? necessary, doable with regular expressions?)
+2. 
+
 
 # Univariate Analysis
 
@@ -36,6 +101,7 @@ summary(ill)
 ### Did you create any new variables from existing variables in the dataset?
 
 ### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+I made some transformations. For instance the contribution amounts were bunched up around the bottom and so applying a log transformation produced something much closer to a normal distribution. 
 
 
 
