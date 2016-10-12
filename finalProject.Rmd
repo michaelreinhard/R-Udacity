@@ -1,0 +1,93 @@
+---
+title: "Final_Project"
+author: "Reinhard"
+date: "10/11/2016"
+output: html_document
+---
+## Load Libraries 
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+install.packages("ggplot2",repos = "http://cran.us.r-project.org")
+install.packages("Hmisc", repos = "http://cran.us.r-project.org")
+install.packages("dplyr", repos = "http://cran.us.r-project.org")
+install.packages("reshape", repos = "http://cran.us.r-project.org")
+install.packages("lme4", repos = "http://cran.us.r-project.org")
+install.packages("gmodels", repos = "http://cran.us.r-project.org")
+install.packages('corrplot', repos="http://cran.us.r-project.org")
+library(ggplot2)
+library(Hmisc)
+library(dplyr)
+library(reshape)
+library(lme4)
+library(nlme)
+library(gmodels)
+library(corrplot)
+```
+## Load Data. 
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+# Load the Data
+ill <- read.csv("/Users/michaelreinhard/nano/R/P00000001-IL.csv", header=TRUE, row.names=NULL)
+colnames(ill) <- c(colnames(ill)[-1],"x")
+ill$x <- NULL
+names(ill)
+state_data <- ill #to have a clean set for reference
+```
+# Univariate Plots Section
+Here we make some univariate plots to see the distribution of the variable. We first have to see which variables are factors and which are continuous. 
+
+Before I make the univariate plots I want to create one variable for party id. 
+```{r echo=FALSE, data_prep}
+party_list <- list("Bachmann, Michele"="Republican","Cain, Herman"="Republican","Gingrich, Newt"="Republican","Huntsman, Jon"="Republican","Johnson, Gary Earl"="Republican","McCotter, Thaddeus G"="Republican","Obama, Barack"="Democrat","Paul, Ron"="Republican","Pawlenty, Timothy"="Republican","Perry, Rick"="Republican","Roemer, Charles E. 'Buddy' III"="Republican","Romney, Mitt"="Republican","Santorum, Rick"="Republican","Stein, Jill"="Socialist")
+
+# use characters to access dictionary (list in R)
+ill$party <- party_list[as.character(ill$cand_nm)]
+# put only values (not keys) in variable
+ill$party <- unlist(ill$party, use.names=FALSE)
+# transform into factor
+ill$party <- as.factor(ill$party)
+names(ill)
+```
+
+```{r echo=FALSE, Univariate_Plots}
+#Counts of party Contributions
+p <- ggplot(ill, aes(x=party)) + geom_bar()
+p + labs(title="Contributions by Party") + xlab("Candidate Party") + ylab("Count of Contributions")
+# with different theme
+p + labs(title="Contributions by Party") + xlab("Candidate Party") + ylab("Count of Contributions") + theme(plot.title = element_text(size = rel(2), colour = "blue"))
+
+#Density Plot of Contributions
+ggplot(ill, aes(x=party, color=party)) + geom_density()
+
+#The candidates
+cbind(table(ill$cand_nm))
+# Counts of contributions by candidate
+ggplot(ill, aes(x=cand_nm)) + geom_bar()
+# Too imbalanced? Take just Republicans?
+illRep <- subset(ill, party=="Republican")
+dim(ill)
+dim(illRep)
+levels(ill$party)
+head(ill$cand_id)
+head(ill$cand_nm)
+illRep <- subset(ill, (cand_nm != "OBAMA, BARACK"))
+dim(illRep)
+dim(ill)
+repNames <- levels(ill$cand_nm)
+repNames <- repNames[-7]
+repNames <- repNames[-13]
+Reps <- ill$cand_nm != 7
+cbind(Reps)
+illRep <- ill[Reps,]
+head(illRep)
+is.factor(illRep$cand_nm)
+illRep <- filter(ill, cand_nm %in% repNames)
+illRep <- subset(ill, cand_nm %in% repNames )
+ggplot(illRep, aes(x=cand_nm)) + geom_bar()
+#Too much Romney. Just primary, i.e., < Tuesday, March 20?
+
+# fix labels? 
+ggplot(illRep, aes(x=cand_nm)) + geom_bar()  + xlab("Candidate Name") + theme(axis.title = element_text(size = 20, color = "blue")) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
